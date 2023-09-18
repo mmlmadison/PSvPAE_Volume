@@ -1,4 +1,4 @@
-###Analyses for Gray matter volume development in PAE and TD, also sex differences in PAE
+###Analyses for Preschool Project, volume of all gray matter MaCRUISE output regions
 ###Madison Long June 2022
 
 if (!require("pacman")) install.packages("pacman")
@@ -6,9 +6,7 @@ pacman::p_load(foreign, plyr, lattice, lme4, tidyverse, methods, lmerTest, gridE
 
 setwd("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/")
 
-
-Alldata <- read.csv("PSvPAE_Longitudinal_20230420.csv")
-PSdata <- subset(Alldata, PAE1_TD0=="0")
+Alldata <- read.csv("PSvPAE_Segmentations_LongitudinalRegistration_20230822.csv")
 
 #recoding variables into different data types, for example string into numeric
 Alldata$ICV <- as.numeric(Alldata$ICV)
@@ -16,17 +14,19 @@ Alldata$ICV <- as.numeric(Alldata$ICV)
 #Alldata$Total_Gray <- Alldata$Total_Gray/10
 Alldata$Age <- as.numeric(Alldata$Age)
 Alldata$Subject <- as.factor(Alldata$Subject)
-Alldata$PAE1_TD0 <- as.factor(Alldata$PAE1_TD0)
+Alldata$PAE <- as.factor(Alldata$PAE)
 Alldata$Sex.F1_M0. <- as.factor(Alldata$Sex.F1_M0.)
 
+Alldata <- subset(Alldata, Age < 8.5)
+PSdata <- subset(Alldata, PAE=="0")
 
-lmer_tableinit_PAE <- lmer(Right_Accumbens_Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
+lmer_tableinit_PAE <- lmer(Right.Accumbens.Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
 df.master.coef.PAE <- as.data.frame(coef(summary(lmer_tableinit_PAE)))
 df.master.coef.PAE["Region"] <-c("Right_Inf_Lat_Vent")
 df.master.etasq.PAE <- as.data.frame(effectsize::eta_squared(lmer_tableinit_PAE))
 df.master.etasq.PAE["Region"] <-c("Right_Inf_Lat_Vent")
 
-lmer_tableinit_Sex <- lmer(Right_Accumbens_Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
+lmer_tableinit_Sex <- lmer(Right.Accumbens.Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
 df.master.coef.Sex <- as.data.frame(coef(summary(lmer_tableinit_Sex)))
 df.master.coef.Sex["Region"] <-c("Right_Inf_Lat_Vent")
 df.master.etasq.Sex <- as.data.frame(effectsize::eta_squared(lmer_tableinit_Sex))
@@ -34,7 +34,7 @@ df.master.etasq.Sex["Region"] <-c("Right_Inf_Lat_Vent")
 
 ######################## PS v PAE mixed effects analysis and plots
 
-regions <-as.data.frame(PSdata[,c(9:125)])
+regions <-as.data.frame(PSdata[,c(10:126)])
 plot_list <- list()
 plot_list_Sex <- list()
 
@@ -44,6 +44,8 @@ for (i in 1:length(regions)) {
   bestAIC <- 0 
   Fplot <-0
   PAEplot <- 0
+  finalplot <- 0
+  finalsexplot <- 0
   colNamesAll <- as.data.frame(colnames(regions))
   colName <- colNamesAll[i,1]
   
@@ -64,20 +66,20 @@ for (i in 1:length(regions)) {
     bestAIC <- AIC_lin
     
     #Run a linear model to test main and int. effects of Group (PSvPAE in this case). Save predicted values.
-    regionsPAEvPS <- as.data.frame(Alldata[,c(9:125)])
+    regionsPAEvPS <- as.data.frame(Alldata[,c(10:126)])
     ROIPAEvPS <- regionsPAEvPS[,i]
-    lmer_volume_lin_PAE <- lmer(ROIPAEvPS ~ Age*PAE1_TD0 + (1|Subject), REML = FALSE, data = Alldata)
+    lmer_volume_lin_PAE <- lmer(ROIPAEvPS ~ Age*PAE + (1|Subject), REML = FALSE, data = Alldata)
     #lmer_volume_lin_PAERAND <- lmer(ROIPAEvPS ~ Age*PAE1_TD0 + (1 + Age|Subject), REML = FALSE, data = Alldata)
     #Alldata$lmerpredlin_PAE <- predict(lmer_volume_lin_PAERAND)
     etasqPAE <- effectsize::eta_squared(lmer_volume_lin_PAE)
     finalPAE <- lmer_volume_lin_PAE
     
     #Subsetting Alldata into PAE and PS for Sex analysis and plotting
-    PAEdata <- subset(Alldata, PAE1_TD0=="1")
-    PSdata <- subset(Alldata, PAE1_TD0=="0")
+    PAEdata <- subset(Alldata, PAE=="1")
+    #PSdata <- subset(Alldata, PAE=="0")
     
     #Run a linear model to test main and int. effects of Sex within the PAE group. Save predicted values.
-    regionsPAE <- as.data.frame(PAEdata[,c(9:125)])
+    regionsPAE <- as.data.frame(PAEdata[,c(10:126)])
     ROIPAE <- regionsPAE[,i]
     lmer_volume_lin_PAESex <- lmer(ROIPAE ~ Age*Sex.F1_M0. + (1|Subject), REML = FALSE, data = PAEdata)
     #lmer_volume_lin_PAESexRAND <- lmer(ROIPAE ~ Age + Sex.F1_M0. + (1 + Age|Subject), REML = FALSE, data = PAEdata)
@@ -88,8 +90,8 @@ for (i in 1:length(regions)) {
     #Subsetting PAEdata by Sex for plotting
     M_data <-subset(PAEdata,Sex.F1_M0.=='0')
     F_data <-subset(PAEdata,Sex.F1_M0.=='1')
-    M_data_regions <- as.data.frame(M_data[,c(9:125)])
-    F_data_regions <- as.data.frame(F_data[,c(9:125)])
+    M_data_regions <- as.data.frame(M_data[,c(10:126)])
+    F_data_regions <- as.data.frame(F_data[,c(10:126)])
     ROIM <- M_data_regions[,i]
     ROIF <- F_data_regions[,i]
 
@@ -172,18 +174,18 @@ for (i in 1:length(regions)) {
     bestAIC <- AIC_quad
     
     #Run a 2nd order linear model to test main and int. effects of Group (PSvPAE in this case)
-    regionsPAEvPS <- as.data.frame(Alldata[,c(9:125)])
+    regionsPAEvPS <- as.data.frame(Alldata[,c(10:126)])
     ROIPAEvPS <- regionsPAEvPS[,i]
-    lmer_volume_quad_PAE <- lmer(ROIPAEvPS ~ I(Age^2)*PAE1_TD0 + Age*PAE1_TD0 + (1|Subject), REML = FALSE, data = Alldata)
+    lmer_volume_quad_PAE <- lmer(ROIPAEvPS ~ I(Age^2)*PAE + Age*PAE + (1|Subject), REML = FALSE, data = Alldata)
     Alldata$lmerpredquad_PAE <- predict(lmer_volume_quad_PAE)
     etasqPAE <- effectsize::eta_squared(lmer_volume_quad_PAE)
     finalPAE <- lmer_volume_quad_PAE
     
-    PAEdata <- subset(Alldata, PAE1_TD0=="1")
-    PSdata <- subset(Alldata, PAE1_TD0=="0")
+    PAEdata <- subset(Alldata, PAE=="1")
+    #PSdata <- subset(Alldata, PAE=="0")
     
     #Run a 2nd order linear model to test main and int. effects of Sex within the PAE group
-    regionsPAE <- as.data.frame(PAEdata[,c(9:125)])
+    regionsPAE <- as.data.frame(PAEdata[,c(10:126)])
     ROIPAE <- regionsPAE[,i]
     lmer_volume_quad_PAESex <- lmer(ROIPAE ~ I(Age^2)*Sex.F1_M0. + Age*Sex.F1_M0. + (1|Subject), REML = FALSE, data = PAEdata)
     PAEdata$lmerpredquad_PAESex <- predict(lmer_volume_quad_PAESex)
@@ -193,8 +195,8 @@ for (i in 1:length(regions)) {
     
     M_data <-subset(PAEdata,Sex.F1_M0.=='0')
     F_data <-subset(PAEdata,Sex.F1_M0.=='1')
-    M_data_regions <- as.data.frame(M_data[,c(9:125)])
-    F_data_regions <- as.data.frame(F_data[,c(9:125)])
+    M_data_regions <- as.data.frame(M_data[,c(10:126)])
+    F_data_regions <- as.data.frame(F_data[,c(10:126)])
     ROIM <- M_data_regions[,i]
     ROIF <- F_data_regions[,i]
     
@@ -294,10 +296,10 @@ for (i in 1:length(regions)) {
   df.coef.Sex['Region'] <- c(colnames(regions)[i])
   df.master.coef.Sex <- rbind(df.master.coef.Sex, df.coef.Sex)
   
-  #write.csv(df.master.coef.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_AbsVolume_20230610.csv")
-  #write.csv(df.master.etasq.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PSvPAE_AbsVolume_20230610.csv")
-  #write.csv(df.master.coef.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_AbsVolume_20230610.csv")
-  #write.csv(df.master.etasq.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PAESex_AbsVolume_20230610.csv")
+  write.csv(df.master.coef.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_AbsVolume_20230824.csv")
+  write.csv(df.master.etasq.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PSvPAE_AbsVolume_20230824.csv")
+  write.csv(df.master.coef.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_AbsVolume_20230824.csv")
+  write.csv(df.master.etasq.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PAESex_AbsVolume_20230824.csv")
 
   print('----------------------------------------------------------------------------------------------------------------')
   print('----------------------------------------------------------------------------------------------------------------')
@@ -305,10 +307,10 @@ for (i in 1:length(regions)) {
   plot_list_Sex[[i]] <- ggplotGrob(Fplot)
 }
 bigPlot <- marrangeGrob(grobs=plot_list, ncol=4, nrow=2)
-ggsave("BigPlot_PSvPAE_Abs_20230610.pdf", bigPlot, width=50, height=25, limitsize = FALSE)
+ggsave("BigPlot_PSvPAE_Abs_WithPSRawData_20230824.pdf", bigPlot, width=50, height=25, limitsize = FALSE)
 
 bigPlot_Sex <- marrangeGrob(grobs=plot_list_Sex, ncol=4, nrow=2)
-ggsave("BigPlot_PAE_Sex_Abs_20230610.pdf", bigPlot_Sex, width=50, height=25, limitsize = FALSE)
+ggsave("BigPlot_PAE_Sex_Abs_20230824.pdf", bigPlot_Sex, width=50, height=25, limitsize = FALSE)
 
 
 #FDR correction
@@ -322,29 +324,25 @@ pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/Lebe
 qval <- p.adjust(p=pvaldf$pval, method="fdr")
 pvaldf$qval <- qval
 View(pvaldf)
-############################
-#ICV as covariate
-
-Alldata <- read.csv("PSvPAE_Longitudinal_20230420.csv")
-PSdata <- subset(Alldata, PAE1_TD0=="0")
-
-#recoding variables into different data types, for example string into numeric
-Alldata$ICV <- as.numeric(Alldata$ICV)
-#Alldata$ICV <- Alldata$ICV/10
-#Alldata$Total_Gray <- Alldata$Total_Gray/10
-Alldata$Age <- as.numeric(Alldata$Age)
-Alldata$Subject <- as.factor(Alldata$Subject)
-Alldata$PAE1_TD0 <- as.factor(Alldata$PAE1_TD0)
-Alldata$Sex.F1_M0. <- as.factor(Alldata$Sex.F1_M0.)
 
 
-lmer_tableinit_PAE <- lmer(Right_Accumbens_Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
+
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+####################################### ICV as covariate
+
+lmer_tableinit_PAE <- lmer(Right.Accumbens.Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
 df.master.coef.PAE <- as.data.frame(coef(summary(lmer_tableinit_PAE)))
 df.master.coef.PAE["Region"] <-c("Right_Inf_Lat_Vent")
 df.master.etasq.PAE <- as.data.frame(effectsize::eta_squared(lmer_tableinit_PAE))
 df.master.etasq.PAE["Region"] <-c("Right_Inf_Lat_Vent")
 
-lmer_tableinit_Sex <- lmer(Right_Accumbens_Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
+lmer_tableinit_Sex <- lmer(Right.Accumbens.Area ~ Age + (1|Subject), REML = FALSE, data = Alldata)
 df.master.coef.Sex <- as.data.frame(coef(summary(lmer_tableinit_Sex)))
 df.master.coef.Sex["Region"] <-c("Right_Inf_Lat_Vent")
 df.master.etasq.Sex <- as.data.frame(effectsize::eta_squared(lmer_tableinit_Sex))
@@ -352,7 +350,7 @@ df.master.etasq.Sex["Region"] <-c("Right_Inf_Lat_Vent")
 
 ######################## PS v PAE mixed effects analysis and plots
 
-regions <-as.data.frame(PSdata[,c(9:125)])
+regions <-as.data.frame(PSdata[,c(10:126)])
 plot_list <- list()
 plot_list_Sex <- list()
 
@@ -382,20 +380,20 @@ for (i in 1:length(regions)) {
     bestAIC <- AIC_lin
     
     #Run a linear model to test main and int. effects of Group (PSvPAE in this case). Save predicted values.
-    regionsPAEvPS <- as.data.frame(Alldata[,c(9:125)])
+    regionsPAEvPS <- as.data.frame(Alldata[,c(10:126)])
     ROIPAEvPS <- regionsPAEvPS[,i]
-    lmer_volume_lin_PAE <- lmer(ROIPAEvPS ~ Age*PAE1_TD0 + ICV + (1|Subject), REML = FALSE, data = Alldata)
+    lmer_volume_lin_PAE <- lmer(ROIPAEvPS ~ Age*PAE + ICV + (1|Subject), REML = FALSE, data = Alldata)
     #lmer_volume_lin_PAERAND <- lmer(ROIPAEvPS ~ Age*PAE1_TD0 + (1 + Age|Subject), REML = FALSE, data = Alldata)
     #Alldata$lmerpredlin_PAE <- predict(lmer_volume_lin_PAERAND)
     etasqPAE <- effectsize::eta_squared(lmer_volume_lin_PAE)
     finalPAE <- lmer_volume_lin_PAE
     
     #Subsetting Alldata into PAE and PS for Sex analysis and plotting
-    PAEdata <- subset(Alldata, PAE1_TD0=="1")
-    PSdata <- subset(Alldata, PAE1_TD0=="0")
+    PAEdata <- subset(Alldata, PAE=="1")
+    PSdata <- subset(Alldata, PAE=="0")
     
     #Run a linear model to test main and int. effects of Sex within the PAE group. Save predicted values.
-    regionsPAE <- as.data.frame(PAEdata[,c(9:125)])
+    regionsPAE <- as.data.frame(PAEdata[,c(10:126)])
     ROIPAE <- regionsPAE[,i]
     lmer_volume_lin_PAESex <- lmer(ROIPAE ~ Age*Sex.F1_M0. + ICV + (1|Subject), REML = FALSE, data = PAEdata)
     #lmer_volume_lin_PAESexRAND <- lmer(ROIPAE ~ Age + Sex.F1_M0. + (1 + Age|Subject), REML = FALSE, data = PAEdata)
@@ -406,8 +404,8 @@ for (i in 1:length(regions)) {
     #Subsetting PAEdata by Sex for plotting
     M_data <-subset(PAEdata,Sex.F1_M0.=='0')
     F_data <-subset(PAEdata,Sex.F1_M0.=='1')
-    M_data_regions <- as.data.frame(M_data[,c(9:125)])
-    F_data_regions <- as.data.frame(F_data[,c(9:125)])
+    M_data_regions <- as.data.frame(M_data[,c(10:126)])
+    F_data_regions <- as.data.frame(F_data[,c(10:126)])
     ROIM <- M_data_regions[,i]
     ROIF <- F_data_regions[,i]
     
@@ -493,18 +491,18 @@ for (i in 1:length(regions)) {
     bestAIC <- AIC_quad
     
     #Run a 2nd order linear model to test main and int. effects of Group (PSvPAE in this case)
-    regionsPAEvPS <- as.data.frame(Alldata[,c(9:125)])
+    regionsPAEvPS <- as.data.frame(Alldata[,c(10:126)])
     ROIPAEvPS <- regionsPAEvPS[,i]
-    lmer_volume_quad_PAE <- lmer(ROIPAEvPS ~ I(Age^2)*PAE1_TD0 + Age*PAE1_TD0 + ICV + (1|Subject), REML = FALSE, data = Alldata)
+    lmer_volume_quad_PAE <- lmer(ROIPAEvPS ~ I(Age^2)*PAE + Age*PAE + ICV + (1|Subject), REML = FALSE, data = Alldata)
     Alldata$lmerpredquad_PAE <- predict(lmer_volume_quad_PAE)
     etasqPAE <- effectsize::eta_squared(lmer_volume_quad_PAE)
     finalPAE <- lmer_volume_quad_PAE
     
-    PAEdata <- subset(Alldata, PAE1_TD0=="1")
-    PSdata <- subset(Alldata, PAE1_TD0=="0")
+    PAEdata <- subset(Alldata, PAE=="1")
+    PSdata <- subset(Alldata, PAE=="0")
     
     #Run a 2nd order linear model to test main and int. effects of Sex within the PAE group
-    regionsPAE <- as.data.frame(PAEdata[,c(9:125)])
+    regionsPAE <- as.data.frame(PAEdata[,c(10:126)])
     ROIPAE <- regionsPAE[,i]
     lmer_volume_quad_PAESex <- lmer(ROIPAE ~ I(Age^2)*Sex.F1_M0. + Age*Sex.F1_M0. + ICV + (1|Subject), REML = FALSE, data = PAEdata)
     PAEdata$lmerpredquad_PAESex <- predict(lmer_volume_quad_PAESex)
@@ -514,8 +512,8 @@ for (i in 1:length(regions)) {
     
     M_data <-subset(PAEdata,Sex.F1_M0.=='0')
     F_data <-subset(PAEdata,Sex.F1_M0.=='1')
-    M_data_regions <- as.data.frame(M_data[,c(9:125)])
-    F_data_regions <- as.data.frame(F_data[,c(9:125)])
+    M_data_regions <- as.data.frame(M_data[,c(10:126)])
+    F_data_regions <- as.data.frame(F_data[,c(10:126)])
     ROIM <- M_data_regions[,i]
     ROIF <- F_data_regions[,i]
     
@@ -540,19 +538,19 @@ for (i in 1:length(regions)) {
     
     PAEslope_lin <- AgeCoef+AgebyGroupCoef*1
     PAEslope_quad <- Age2Coef+Age2byGroupCoef*1
-    PAEinterc <- Interc+GroupCoef*1+ICVCoef*1223246
+    PAEinterc <- Interc+GroupCoef*1+ICVCoef*1223537
     
     TDslope_lin <- AgeCoef+AgebyGroupCoef*0
     TDslope_quad <- Age2Coef+Age2byGroupCoef*0
-    TDinterc <- Interc+GroupCoef*0+ICVCoef*1261193
+    TDinterc <- Interc+GroupCoef*0+ICVCoef*1282053
     
     Femslope_lin <- AgeCoef_Sex+AgebyGroupCoef_Sex*1
     Femslope_quad <- Age2Coef_Sex+Age2byGroupCoef_Sex*1
-    Feminterc <- Interc_Sex+GroupCoef_Sex*1+ICVCoef_Sex*1174426
+    Feminterc <- Interc_Sex+GroupCoef_Sex*1+ICVCoef_Sex*1174942
     
     Maleslope_lin <- AgeCoef_Sex+AgebyGroupCoef_Sex*0
     Maleslope_quad <- Age2Coef_Sex+Age2byGroupCoef_Sex*0
-    Maleinterc <- Interc_Sex+GroupCoef_Sex*0+ICVCoef_Sex*1275972
+    Maleinterc <- Interc_Sex+GroupCoef_Sex*0+ICVCoef_Sex*1279607
     
     #Defining the functions of the two mean trajectories
     ROIfnquad_PAE <- function(x) {
@@ -617,10 +615,10 @@ for (i in 1:length(regions)) {
   df.coef.Sex['Region'] <- c(colnames(regions)[i])
   df.master.coef.Sex <- rbind(df.master.coef.Sex, df.coef.Sex)
   
-  write.csv(df.master.coef.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_20230611.csv")
-  write.csv(df.master.etasq.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PSvPAE_ICVCoV_20230611.csv")
-  write.csv(df.master.coef.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_20230611.csv")
-  write.csv(df.master.etasq.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PAESex_ICVCoV_20230611.csv")
+  write.csv(df.master.coef.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_20230824.csv")
+  write.csv(df.master.etasq.PAE, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PSvPAE_ICVCoV_20230824.csv")
+  write.csv(df.master.coef.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_20230824.csv")
+  write.csv(df.master.etasq.Sex, "/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/EtaSqTable_PAESex_ICVCoV_20230824.csv")
   
   print('----------------------------------------------------------------------------------------------------------------')
   print('----------------------------------------------------------------------------------------------------------------')
@@ -628,19 +626,19 @@ for (i in 1:length(regions)) {
   plot_list_Sex[[i]] <- ggplotGrob(Fplot)
 }
 bigPlot <- marrangeGrob(grobs=plot_list, ncol=4, nrow=2)
-ggsave("BigPlot_PSvPAE_ICVCoV_20230611.pdf", bigPlot, width=50, height=25, limitsize = FALSE)
+ggsave("BigPlot_PSvPAE_ICVCoV_WithPSRawData_20230824.pdf", bigPlot, width=50, height=25, limitsize = FALSE)
 
 bigPlot_Sex <- marrangeGrob(grobs=plot_list_Sex, ncol=4, nrow=2)
-ggsave("BigPlot_PAE_Sex_ICVCoV_20230611.pdf", bigPlot_Sex, width=50, height=25, limitsize = FALSE)
+ggsave("BigPlot_PAE_Sex_ICVCoV_20230824.pdf", bigPlot_Sex, width=50, height=25, limitsize = FALSE)
 
 #FDR correction
-pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_FDRCorrected_Group_20230611.csv")
-pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_FDRCorrected_AgebyGroup_20230611.csv")
-pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_FDRCorrected_Age2byGroup_20230611.csv")
+pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_FDRCorrected_Group_20230824.csv")
+pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_FDRCorrected_AgebyGroup_20230824.csv")
+pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PSvPAE_ICVCoV_FDRCorrected_Age2byGroup_20230824.csv")
 
-pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_FDRCorrected_Sex_20230611.csv")
-pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_FDRCorrected_AgebySex_20230611.csv")
-pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_FDRCorrected_Age2bySex_20230611.csv")
+pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_FDRCorrected_Sex_20230824.csv")
+pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_FDRCorrected_AgebySex_20230824.csv")
+pvaldf <- read.csv("/Users/madisonlong/Dropbox/UniversityofCalgary/LebelLab/LebelLab_Projects/PSvPAE_Volume/ModelsTable_PAESex_ICVCoV_FDRCorrected_Age2bySex_20230824.csv")
 
 qval <- p.adjust(p=pvaldf$pval, method="fdr")
 pvaldf$qval <- qval
